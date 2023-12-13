@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 import utils
-import numpy
 import matplotlib.pyplot as plt
-###YOUR IMPORTS HERE###
 import numpy as np
 
 def main():
     #Import the cloud
-    pc_source = utils.load_pc('cat.csv')
+    pc_source = utils.load_pc('data/pcl_data_csv/horse.csv')
 
     # target = 3
     # pc_target_filename = f'cloud_icp_target{target}.csv'
