@@ -83,8 +83,6 @@ def calculate_normal_vec(pc, k=20):
 
         normals.append(normal)
 
-    # print("Normals shape: ",np.array(normals).shape)
-
     return np.array(normals)  # Transpose back to match the original pc shape
 # Done
 def find_closest_histogram(hist_source, hists_target):
@@ -93,10 +91,10 @@ def find_closest_histogram(hist_source, hists_target):
 
     return closest_idx
 
-def get_neighbors_radius(point, pc, radius=20):
+def get_neighbors_radius(point, pc, radius=30):
     neighbor_indices = []
     for i, other_point in enumerate(pc):
-        if other_point.all() != point.all() and np.linalg.norm(point - other_point) < radius:
+        if np.linalg.norm(point - other_point) < radius:
             neighbor_indices.append(i)
     return neighbor_indices
 
@@ -124,7 +122,7 @@ def get_bin_index(feature, bins_number):
 
 
 
-def pfh(pc, normals, bins_number=125, radius=20):
+def pfh(pc, normals, bins_number=125, radius=0.05):
     """
     pc: point cloud, (3400, 3) np.array
     return: closest list
@@ -134,9 +132,11 @@ def pfh(pc, normals, bins_number=125, radius=20):
     
     for i in range(points_count):
         # Find neighbor
+        start = time.time()
         neighbor_indices = get_neighbors_radius(pc[i], pc, radius)
-        histogram = np.zeros([bins_number])
+        # print(f'length: {len(neighbor_indices)}')
 
+        histogram = np.zeros([bins_number])
         # Feature calculation
         for j in neighbor_indices:
             if i != j:
@@ -154,7 +154,7 @@ def icp_pfh(pc_source, pc_target):
     # Compute centroid of source and target
     iter = 0
     finished = False
-    epsilon = 0.01
+    epsilon = 0.0001
     errors = []
     
     pc_target_matrix = utils.convert_pc_to_matrix(pc_target)     # (3, 3400) matrix
@@ -163,9 +163,9 @@ def icp_pfh(pc_source, pc_target):
     target_histograms = pfh(pc_target_array, pc_target_normals)  # (3400, 125)
     
     while not finished:
-        if iter == 100:
+        if iter == 5:
             finished = True
-            return P, errors
+            return pc_source, errors
         
         print(f"Iteration: {iter}")
         pc_source_matrix = utils.convert_pc_to_matrix(pc_source)     # (3, 3400) matrix
@@ -175,21 +175,23 @@ def icp_pfh(pc_source, pc_target):
         P = [] # source point
         Q = [] # closest point in target
 
+        time1 = time.time()
         # Calculate normal vector
         normal_vec_start = time.time()
         pc_source_normals = calculate_normal_vec(pc_source_array)
         normal_vec_duration = time.time() - normal_vec_start
         print(f"Normal Vector time: {normal_vec_duration:.5f} sec. ")
 
+        time2 = time.time()
         # source and target histogram
-        pfh_start = time.time()
-        score_histograms = pfh(pc_source_array, pc_source_normals)  # (3400, 125)
-        pfh_duration = time.time() - pfh_start
-        print(f"Point Feature Histogram time: {pfh_duration:.5f} sec. ")
+        score_histograms = pfh(pc_source_array, pc_source_normals) # (3400, 125)
+        target_histograms = pfh(pc_target_array, pc_target_normals) # (3400, 125)
 
-        # print(f'pfh done')
+        time3 = time.time()
+        print(f'pfh done')
+        print(f'pfh 1: {time2 - time1}')
+        print(f'pfh 2: {time3 - time2}')
 
-        find_closest_start = time.time()
         for i, point in enumerate(pc_source):
             # compare histogram, and find closest
             closest_index = find_closest_histogram(score_histograms[i], target_histograms)
@@ -206,16 +208,22 @@ def icp_pfh(pc_source, pc_target):
         Q_np = utils.convert_pc_to_matrix(Q)
         R, t = find_rigid_transformation(P_np, Q_np)
 
-        dist = (np.dot(R, pc_source_matrix) + t) - pc_target_matrix
-        error = np.sum(np.linalg.norm(dist, axis=0))
-        errors.append(error)
-        if error < epsilon:
-            finished = True
-            return P, errors
-        
         # Update all P
         for i in range(len(P)):
             pc_source[i] = np.dot(R, pc_source_matrix[:, i]) + t
+
+        print(f'original error: {np.sum(np.linalg.norm(pc_source_matrix - pc_target_matrix, axis=0))}')
+
+        dist = (np.dot(R, pc_source_matrix) + t) - pc_target_matrix
+        print(f'dist size: {dist.shape}')
+        error = np.sum(np.linalg.norm(dist, axis=0))
+        errors.append(error)
+        print(f'error: {error}')
+        if error < epsilon:
+            finished = True
+            return pc_source, errors
+        
+
             
         iter += 1
             
@@ -223,7 +231,8 @@ def icp_pfh(pc_source, pc_target):
 
 def main():
     # Import the source point cloud
-    pc_source = utils.load_pc('source/pcl_data_csv/horse.csv')
+    # pc_source = utils.load_pc('source/pcl_data_csv/horse.csv')
+    pc_source = utils.load_pc('source/course_data/cloud_icp_source.csv')
     pc_source_matrix = utils.convert_pc_to_matrix(pc_source)
     
     # Transform point cloud to get target point cloud
@@ -231,20 +240,21 @@ def main():
     pc_source_np_homogenous = np.vstack((pc_source_matrix, np.ones((1, pc_source_matrix.shape[1]))))
     pc_target_matrix = np.dot(M, pc_source_np_homogenous)[:3, :] # (3, 3400) matrix
     pc_target = utils.convert_matrix_to_pc(pc_target_matrix)
+    pc_target = utils.load_pc('source/course_data/cloud_icp_target0.csv')
     
     # Iterate with Point Feature Histogram
     start = time.time()
 
-    icp_pfh(pc_source, pc_target)
+    pc_source_transformed, errors = icp_pfh(pc_source, pc_target)
     duration = time.time() - start
     print(f"Total time of Point Feature Histogram is {duration:.5f} sec. ")
 
     #########################    Visualization    #########################
     # View point cloud 
-    fig1 = utils.view_pc([pc_source, pc_target], None, ['b', 'r'], ['o', '^'])
-    fig1.axes[0].set_xlim(-150, 200)
-    fig1.axes[0].set_ylim(-150, 200)
-    fig1.axes[0].set_zlim(-150, 200)
+    fig1 = utils.view_pc([pc_source, pc_target, pc_source_transformed], None, ['b', 'r', 'g'], ['o', '^', 'o'])
+    # fig1.axes[0].set_xlim(-150, 200)
+    # fig1.axes[0].set_ylim(-150, 200)
+    # fig1.axes[0].set_zlim(-150, 200)
     
     # # Plot normals
     # for i in range(len(pc_source)):
