@@ -83,7 +83,7 @@ def calculate_normal_vec(pc, k=20):
 
         normals.append(normal)
 
-    print("Normals shape: ",np.array(normals).shape)
+    # print("Normals shape: ",np.array(normals).shape)
 
     return np.array(normals)  # Transpose back to match the original pc shape
 # Done
@@ -157,41 +157,51 @@ def icp_pfh(pc_source, pc_target):
     epsilon = 0.01
     errors = []
     
+    pc_target_matrix = utils.convert_pc_to_matrix(pc_target)     # (3, 3400) matrix
+    pc_target_array = np.asarray(pc_target_matrix.T)             # (3400, 3) array
+    pc_target_normals = calculate_normal_vec(pc_target_array)
+    target_histograms = pfh(pc_target_array, pc_target_normals)  # (3400, 125)
+    
     while not finished:
         if iter == 100:
             finished = True
             return P, errors
         
-        # print(f"Iteration: {iter}")
+        print(f"Iteration: {iter}")
         pc_source_matrix = utils.convert_pc_to_matrix(pc_source)     # (3, 3400) matrix
-        pc_target_matrix = utils.convert_pc_to_matrix(pc_target)     # (3, 3400) matrix
         pc_source_array = np.asarray(pc_source_matrix.T)             # (3400, 3) array
-        pc_target_array = np.asarray(pc_target_matrix.T)             # (3400, 3) array
         
         # Compute Correspondences
         P = [] # source point
         Q = [] # closest point in target
 
         # Calculate normal vector
+        normal_vec_start = time.time()
         pc_source_normals = calculate_normal_vec(pc_source_array)
-        pc_target_normals = calculate_normal_vec(pc_target_array)    
+        normal_vec_duration = time.time() - normal_vec_start
+        print(f"Normal Vector time: {normal_vec_duration:.5f} sec. ")
 
         # source and target histogram
-        score_histograms = pfh(pc_source_array, pc_source_normals) # (3400, 125)
-        target_histograms = pfh(pc_target_array, pc_target_normals) # (3400, 125)
+        pfh_start = time.time()
+        score_histograms = pfh(pc_source_array, pc_source_normals)  # (3400, 125)
+        pfh_duration = time.time() - pfh_start
+        print(f"Point Feature Histogram time: {pfh_duration:.5f} sec. ")
 
-        print(f'pfh done')
+        # print(f'pfh done')
 
+        find_closest_start = time.time()
         for i, point in enumerate(pc_source):
             # compare histogram, and find closest
-            closest_index = find_closest_histogram(score_histograms[i], target_histograms) # TODO:closest list
+            closest_index = find_closest_histogram(score_histograms[i], target_histograms)
             q_np = pc_target_array[closest_index]
             q_np = q_np.reshape((3, 1)).T
             q = utils.convert_matrix_to_pc(q_np)  # this is a list of 3 floats
             
             P.append(point)
             Q.append(q)
-            
+        find_closest_duration = time.time() - find_closest_start
+        print(f"Find Closest Histogram time: {find_closest_duration:.5f} sec. ")
+        
         P_np = utils.convert_pc_to_matrix(P)
         Q_np = utils.convert_pc_to_matrix(Q)
         R, t = find_rigid_transformation(P_np, Q_np)
