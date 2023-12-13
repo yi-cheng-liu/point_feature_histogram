@@ -2,9 +2,10 @@
 
 # List of Python packages to install
 PACKAGES=(
-    "open3d"
     "numpy"
+    "matplotlib"
     "pandas"
+    "open3d"
 )
 
 # Function to install Python packages
