@@ -7,9 +7,9 @@ import time
 def random_trans_matrix():
     """ Generate random transformation matrix for target point """
     # Rotational matrix
-    roll = np.random.rand() * np.pi
-    pitch = np.random.rand() * np.pi
-    yaw = np.random.rand() * np.pi
+    roll = np.random.rand() * 2 * np.pi
+    pitch = np.random.rand() * 2 * np.pi
+    yaw = np.random.rand() * 2 * np.pi
     Rx = np.array([
         [1, 0, 0],
         [0, np.cos(roll), -np.sin(roll)],
@@ -29,7 +29,6 @@ def random_trans_matrix():
     rot_mat = Rz @ Ry @ Rx
     # Translation matrix
     translation_mat = np.random.rand(3).reshape((3, ))
-
     transformation_mat = np.eye(4)
     transformation_mat[:3, :3] = rot_mat
     transformation_mat[:3, 3] = translation_mat
@@ -122,7 +121,7 @@ def get_bin_index(feature, bins_number):
 
 
 
-def pfh(pc, normals, bins_number=125, radius=0.05):
+def pfh(pc, normals, bins_number=125, radius=5):
     """
     pc: point cloud, (3400, 3) np.array
     return: closest list
@@ -132,11 +131,9 @@ def pfh(pc, normals, bins_number=125, radius=0.05):
     
     for i in range(points_count):
         # Find neighbor
-        start = time.time()
         neighbor_indices = get_neighbors_radius(pc[i], pc, radius)
-        # print(f'length: {len(neighbor_indices)}')
-
         histogram = np.zeros([bins_number])
+
         # Feature calculation
         for j in neighbor_indices:
             if i != j:
@@ -151,6 +148,7 @@ def pfh(pc, normals, bins_number=125, radius=0.05):
     return np.array(histograms)
 
 def icp_pfh(pc_source, pc_target):
+
     # Compute centroid of source and target
     iter = 0
     finished = False
@@ -163,7 +161,7 @@ def icp_pfh(pc_source, pc_target):
     target_histograms = pfh(pc_target_array, pc_target_normals)  # (3400, 125)
     
     while not finished:
-        if iter == 5:
+        if iter == 1:
             finished = True
             return pc_source, errors
         
@@ -175,22 +173,22 @@ def icp_pfh(pc_source, pc_target):
         P = [] # source point
         Q = [] # closest point in target
 
-        time1 = time.time()
         # Calculate normal vector
         normal_vec_start = time.time()
         pc_source_normals = calculate_normal_vec(pc_source_array)
         normal_vec_duration = time.time() - normal_vec_start
         print(f"Normal Vector time: {normal_vec_duration:.5f} sec. ")
 
-        time2 = time.time()
         # source and target histogram
+        start = time.time()
         score_histograms = pfh(pc_source_array, pc_source_normals) # (3400, 125)
-        target_histograms = pfh(pc_target_array, pc_target_normals) # (3400, 125)
-
-        time3 = time.time()
+        # target_histograms = pfh(pc_target_array, pc_target_normals) # (3400, 125)
+        print(f'pfh time: {time.time()-start}')
         print(f'pfh done')
-        print(f'pfh 1: {time2 - time1}')
-        print(f'pfh 2: {time3 - time2}')
+
+        find_closest_start = time.time()
+        num_points = len(pc_source)
+        print(num_points)
 
         for i, point in enumerate(pc_source):
             # compare histogram, and find closest
@@ -222,17 +220,17 @@ def icp_pfh(pc_source, pc_target):
         if error < epsilon:
             finished = True
             return pc_source, errors
-        
-
-            
+    
         iter += 1
             
     return pc_source, errors
 
 def main():
     # Import the source point cloud
-    # pc_source = utils.load_pc('source/pcl_data_csv/horse.csv')
-    pc_source = utils.load_pc('source/course_data/cloud_icp_source.csv')
+    pc_source = utils.load_pc('source/pcl_data_csv/horse.csv')
+    pc_source_original = utils.load_pc('source/pcl_data_csv/horse.csv')
+    
+    # pc_source = utils.load_pc('source/course_data/cloud_icp_source.csv')
     pc_source_matrix = utils.convert_pc_to_matrix(pc_source)
     
     # Transform point cloud to get target point cloud
@@ -240,7 +238,7 @@ def main():
     pc_source_np_homogenous = np.vstack((pc_source_matrix, np.ones((1, pc_source_matrix.shape[1]))))
     pc_target_matrix = np.dot(M, pc_source_np_homogenous)[:3, :] # (3, 3400) matrix
     pc_target = utils.convert_matrix_to_pc(pc_target_matrix)
-    pc_target = utils.load_pc('source/course_data/cloud_icp_target0.csv')
+    # pc_target = utils.load_pc('source/course_data/cloud_icp_target0.csv')
     
     # Iterate with Point Feature Histogram
     start = time.time()
@@ -251,10 +249,10 @@ def main():
 
     #########################    Visualization    #########################
     # View point cloud 
-    fig1 = utils.view_pc([pc_source, pc_target, pc_source_transformed], None, ['b', 'r', 'g'], ['o', '^', 'o'])
-    # fig1.axes[0].set_xlim(-150, 200)
-    # fig1.axes[0].set_ylim(-150, 200)
-    # fig1.axes[0].set_zlim(-150, 200)
+    fig2 = utils.view_pc([pc_source_original, pc_target, pc_source_transformed], None, ['b', 'r', 'g'], ['o', '^', 'v'])
+    fig2.axes[0].set_xlim(-150, 200)
+    fig2.axes[0].set_ylim(-150, 200)
+    fig2.axes[0].set_zlim(-150, 200)
     
     # # Plot normals
     # for i in range(len(pc_source)):
