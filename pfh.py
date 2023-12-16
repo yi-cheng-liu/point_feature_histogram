@@ -133,19 +133,20 @@ def pfh(pc, normals, selected_points, bins_number=125, radius=5):
 
         # Feature calculation
         for j in neighbor_indices:
-            if idx != j:
-                feature = calculate_feature(pc[idx], pc[j], normals[idx], normals[j])
+            for k in neighbor_indices:
+                if j != k:
+            # if idx != j:
+                    feature = calculate_feature(pc[j], pc[k], normals[j], normals[k])
 
-                # Histogram bin
-                bin_index = get_bin_index(feature, bins_number)
-                histogram[bin_index] += 1
+                    # Histogram bin
+                    bin_index = get_bin_index(feature, bins_number)
+                    histogram[bin_index] += 1
 
         histograms[idx] = histogram
 
     return histograms
 
 def icp_pfh(pc_source, pc_target, max_iteration, epsilon, num_selected):
-
     # Compute centroid of source and target
     iter = 0
     finished = False
@@ -196,7 +197,7 @@ def icp_pfh(pc_source, pc_target, max_iteration, epsilon, num_selected):
             # add to list used to compute transformation
             P.append(pc_source[i])
             Q.append(q)
-            
+
         find_closest_duration = time.time() - find_closest_start
         print(f"Find Closest Histogram time: {find_closest_duration:.5f} sec. ")
         
