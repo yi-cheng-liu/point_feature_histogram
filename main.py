@@ -23,16 +23,17 @@ def main():
     pc_target_matrix = np.dot(M, pc_source_np_homogenous)[:3, :] # (3, 3400) matrix
     pc_target = utils.convert_matrix_to_pc(pc_target_matrix)
     
-    # Calculate normals for source and target point clouds
-    pc_source_normals = PFH.calculate_normal_vec(pc_source)  # Static method call without instance
-    pc_target_normals = PFH.calculate_normal_vec(pc_target)  # Static method call without instance
-
     # Create PFH instance for source point cloud
-    pfh_source = PFH(pc_source, pc_source_normals)
+    pfh_source = PFH(pc_source)
 
     # Create PFH instance for target point cloud
-    pfh_target = PFH(pc_target, pc_target_normals)
+    pfh_target = PFH(pc_target)
 
+    # set parameter
+    max_iteration = 10
+    epsilon = 30000
+    num_selected = 400
+    
     # Perform ICP using PFH
     start = time.time()
     pc_source_transformed, _ = pfh_source.icp_pfh(pc_source, pc_target, max_iteration, epsilon, num_selected)

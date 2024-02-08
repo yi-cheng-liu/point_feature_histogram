@@ -4,7 +4,7 @@ import utils
 import time
 
 class PFH:
-    def __init__(self, pc, normals, bins_number=125, radius=5):
+    def __init__(self, pc, bins_number=125, radius=5):
         """
         Initialize the PFH object.
 
@@ -14,7 +14,8 @@ class PFH:
         :param radius: The radius within which to search for neighboring points.
         """
         self.pc = pc
-        self.normals = normals
+        self.pc_matrix = utils.convert_pc_to_matrix(pc)
+        # self.normals = self.calculate_normal_vec(pc)
         self.bins_number = bins_number
         self.radius = radius
     
