@@ -4,10 +4,6 @@ from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-
-
-
-
 def load_pc(filename):
     """Load a csv PC.
 
@@ -27,7 +23,6 @@ def load_pc(filename):
                 pc.append(numpy.matrix([float(x) for x in row]).T)
 
     return pc
-
 
 def view_pc(pcs, fig=None, color='b', marker='o'):
     """Visualize a pc.
@@ -255,8 +250,6 @@ def transform_cloud(pc,tx,ty,tz,roll,pitch,yaw):
     return pc_out
 
 
-
-
 def convert_pc_to_matrix(pc):
     """Coverts a point cloud to a numpy matrix.
 
@@ -272,7 +265,6 @@ def convert_pc_to_matrix(pc):
         numpy_pc[0:3, index] = pt
 
     return numpy_pc
-
 
 def convert_matrix_to_pc(numpy_pc):
     """Coverts a numpy matrix to a point cloud (useful for plotting).

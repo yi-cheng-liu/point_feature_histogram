@@ -7,11 +7,14 @@ from pfh import PFH
 def main():
     # Import the source point cloud
     pc_source = utils.load_pc('source/pcl_data_csv/horse.csv')
-    pc_source_original = utils.load_pc('source/pcl_data_csv/horse.csv')
+    pc_source_original = pc_source.copy()
     pc_source_matrix = utils.convert_pc_to_matrix(pc_source)
     
+    # Create PFH instance for source point cloud
+    pfh_source = PFH(pc_source)
+    
     # Transform point cloud to get target point cloud
-    # M = random_trans_matrix()
+    random_M = pfh_source.random_trans_matrix()
     M = [
         [-0.11398497,  0.43457496,  0.89339355,  0.11882465],
         [-0.63446844,  0.6601462,  -0.40206567,  0.62941794],
@@ -22,9 +25,6 @@ def main():
     pc_source_np_homogenous = np.vstack((pc_source_matrix, np.ones((1, pc_source_matrix.shape[1]))))
     pc_target_matrix = np.dot(M, pc_source_np_homogenous)[:3, :] # (3, 3400) matrix
     pc_target = utils.convert_matrix_to_pc(pc_target_matrix)
-    
-    # Create PFH instance for source point cloud
-    pfh_source = PFH(pc_source)
 
     # Create PFH instance for target point cloud
     pfh_target = PFH(pc_target)
@@ -50,7 +50,7 @@ def main():
     fig1.legend(labels, loc='upper right')
     plt.title("Horse Result")
     
-    # # Plot normals
+    # Plot normals
     # for i in range(len(pc_source)):
     #     point = pc_source_array[i]
     #     normal = source_normals[i]
