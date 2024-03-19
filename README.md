@@ -31,7 +31,7 @@ pip install -r requirements.txt
     \theta = arctan(w \cdot n_j, u \cdot n_j)
     \end{array}$
 
-![Region Diagram for point feature histogram](https://pcl.readthedocs.io/projects/tutorials/en/latest/_images/pfh_diagram.png)
+![Region Diagram for point feature histogram](./result/pfh_diagram.png)
 
 ## 📈 4. Result
 
