@@ -31,7 +31,7 @@ pip install -r requirements.txt
   
  $$ \alpha = v \cdot n_j $$
 
- $$ \phi = (u \cdot (p_j − p_i)) / ||p_j − p_i|| $$
+ $$ \phi = \frac{ (u \cdot (p_j − p_i)) }{||p_j − p_i||} $$
 
  $$ \theta = arctan(w \cdot n_j, u \cdot n_j) $$
 
